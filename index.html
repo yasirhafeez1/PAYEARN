@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayEarn - Premium Portal</title>
+
+  <!-- 1. Silence annoying Tailwind console warning -->
+  <script>
+    (function() {
+      const originalWarn = console.warn;
+      console.warn = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && (args[0].includes('tailwindcss.com') || args[0].includes('production'))) {
+          return;
+        }
+        originalWarn.apply(console, args);
+      };
+    })();
+  </script>
+
+  <!-- 2. Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 3. FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- 4. SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <!-- 5. Stable Firebase Compat CDNs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-app-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-auth-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-firestore-compat.min.js"></script>
+
+  <style>
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    body {
+      background: radial-gradient(circle at top left, #0f172a, #020617);
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header Banner -->
+  <header class="w-full max-w-md mx-auto px-4 pt-4 flex justify-between items-center z-10">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <i class="fa-solid fa-coins text-white text-sm"></i>
+      </div>
+      <span class="font-bold text-lg tracking-wide bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">PayEarn</span>
+    </div>
+  </header>
+
+  <!-- Main Screen Container -->
+  <main class="flex-1 w-full max-w-md mx-auto px-4 py-6 flex flex-col justify-center relative">
+
+    <!-- Screen 1: Loading Spinner / Error Panel -->
+    <div id="screen-loading" class="flex flex-col items-center justify-center space-y-4 py-20 text-center">
+      <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-slate-400 text-sm tracking-wide">Syncing secure data...</p>
+    </div>
+
+    <!-- Screen 2: Login Screen -->
+    <div id="screen-login" class="hidden space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="text-3xl font-extrabold tracking-tight">Welcome Back</h2>
+        <p class="text-slate-400 text-sm">Log in to check your tasks and withdraw earnings</p>
+      </div>
+      <form id="login-form" class="glass-card rounded-2xl p-6 space-y-4 shadow-xl">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Email Address</label>
+          <div class="relative">
+            <i class="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="email" id="login-email" required placeholder="name@domain.com" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Password</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm py-3.5 rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all mt-2">
+          Secure Login
+        </button>
+      </form>
+      <div class="text-center space-y-4">
+        <div>
+          <button id="go-to-register" class="text-sm font-medium text-slate-400 hover:text-indigo-400 transition-colors">
+            New user? <span class="text-indigo-400 underline decoration-indigo-400/50">Register Account</span>
+          </button>
+        </div>
+        <!-- Privacy Policy at the bottom of Login page -->
+        <div class="pt-4 border-t border-slate-900/60">
+          <a href="https://privacy-policy-pink-alpha.vercel.app/" target="_blank" class="text-xs text-slate-500 hover:text-indigo-400 transition-colors inline-flex items-center gap-1">
+            <i class="fa-solid fa-user-shield text-[10px]"></i> Privacy Policy
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3: Register Screen -->
+    <div id="screen-register" class="hidden space-y-6">
+      <div class="text-center space-y-2">
+        <h2 class="text-3xl font-extrabold tracking-tight">Create Account</h2>
+        <p class="text-slate-400 text-sm">Join to activate and unlock daily micro-tasks</p>
+      </div>
+      <form id="register-form" class="glass-card rounded-2xl p-6 space-y-4 shadow-xl">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Full Name</label>
+          <div class="relative">
+            <i class="fa-regular fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text" id="reg-name" required placeholder="John Doe" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Email Address</label>
+          <div class="relative">
+            <i class="fa-regular fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="email" id="reg-email" required placeholder="name@domain.com" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Phone Number</label>
+          <div class="relative">
+            <i class="fa-solid fa-mobile-screen-button absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="tel" id="reg-phone" required placeholder="03XXXXXXXXX" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Referral Code (Optional Code)</label>
+          <div class="relative">
+            <i class="fa-solid fa-user-group absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text" id="reg-ref" placeholder="PE8A3F2" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Password</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="password" id="reg-password" required placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-300">Confirm Password</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="password" id="reg-cpassword" required placeholder="••••••••" class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm py-3.5 rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all mt-2">
+          Create Account
+        </button>
+      </form>
+      <div class="text-center space-y-4">
+        <div>
+          <button id="go-to-login" class="text-sm font-medium text-slate-400 hover:text-indigo-400 transition-colors">
+            Already have an account? <span class="text-indigo-400 underline decoration-indigo-400/50">Log In</span>
+          </button>
+        </div>
+        <!-- Privacy Policy at the bottom of Register page -->
+        <div class="pt-4 border-t border-slate-900/60">
+          <a href="https://privacy-policy-pink-alpha.vercel.app/" target="_blank" class="text-xs text-slate-500 hover:text-indigo-400 transition-colors inline-flex items-center gap-1">
+            <i class="fa-solid fa-user-shield text-[10px]"></i> Privacy Policy
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 4: Activation Fee Screen (Updated Payment Info) -->
+    <div id="screen-activation" class="hidden space-y-6">
+      <div class="text-center space-y-2">
+        <div class="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-3 py-1 rounded-full text-xs font-semibold">
+          <i class="fa-solid fa-triangle-exclamation animate-pulse"></i> Verification Required
+        </div>
+        <h2 class="text-2xl font-extrabold">Account Activation Fees</h2>
+        <p class="text-xl font-bold text-indigo-400">500 PKR</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-5 space-y-4">
+        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 space-y-3">
+          <p class="text-xs text-slate-400 text-center">Transfer exact fee to the official account details below:</p>
+          <div class="flex items-center justify-between py-2 border-b border-slate-800">
+            <span class="text-sm font-medium text-slate-300">Method:</span>
+            <span class="text-sm font-bold text-emerald-400">JazzCash</span>
+          </div>
+          <div class="flex items-center justify-between py-2 border-b border-slate-800">
+            <span class="text-sm font-medium text-slate-300">Account Name:</span>
+            <span class="text-sm font-bold text-slate-100">Maqab Khan</span>
+          </div>
+          <div class="flex items-center justify-between py-1">
+            <span class="text-sm font-medium text-slate-300">Number:</span>
+            <span class="text-sm font-bold text-indigo-400 flex items-center gap-1.5 selection:bg-indigo-500/30">
+              03412955535 
+              <button onclick="navigator.clipboard.writeText('03412955535'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Number copied!', showConfirmButton:false, timer:1500});" class="text-slate-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
+            </span>
+          </div>
+        </div>
+
+        <form id="payment-form" class="space-y-3.5">
+          <div class="space-y-1">
+            <label class="text-xs text-slate-300 font-semibold">Sender Name</label>
+            <input type="text" id="pay-name" required placeholder="Your full account name" class="w-full bg-slate-900/85 border border-slate-700/80 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs text-slate-300 font-semibold">Sender Mobile Number</label>
+            <input type="tel" id="pay-number" required placeholder="03XXXXXXXXX" class="w-full bg-slate-900/85 border border-slate-700/80 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs text-slate-300 font-semibold">Transaction ID (TID)</label>
+            <input type="text" id="pay-tid" required placeholder="Min 11-digit Transaction ID" class="w-full bg-slate-900/85 border border-slate-700/80 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+          </div>
+          
+          <!-- Upload Receipt Screenshot (Compulsory) -->
+          <div class="space-y-1">
+            <label class="text-xs text-slate-300 font-semibold flex items-center gap-1">
+              Upload Receipt Screenshot <span class="text-red-500 font-bold">*</span>
+            </label>
+            <input type="file" id="pay-screenshot" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-750 cursor-pointer">
+          </div>
+
+          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm py-3.5 rounded-xl transition-all shadow-lg active:scale-95 mt-4">
+            Submit Verification Form
+          </button>
+        </form>
+
+        <!-- Chat Support Button -->
+        <button type="button" onclick="openSupportScreen()" class="w-full bg-slate-800 hover:bg-slate-750 text-indigo-300 font-semibold text-xs py-3.5 rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 mt-3 shadow-md">
+          <i class="fa-regular fa-comments text-sm"></i> Need Help? Chat with Us
+        </button>
+      </div>
+      <button onclick="auth.signOut()" class="w-full text-center text-xs text-rose-400 hover:underline">Log Out Current Session</button>
+    </div>
+
+    <!-- Screen 5: Pending Approval Screen -->
+    <div id="screen-pending" class="hidden space-y-6 text-center">
+      <div class="w-20 h-20 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mx-auto text-3xl animate-pulse">
+        <i class="fa-regular fa-clock"></i>
+      </div>
+      <div class="space-y-3">
+        <h2 class="text-2xl font-bold">Verification Pending</h2>
+        <p class="text-slate-400 text-sm leading-relaxed px-4">
+          Please wait, our team is validating your transactional ID and matching details. Your account is typically cleared in 2–3 hours. Thank you for your patience.
+        </p>
+      </div>
+      <div class="glass-card rounded-2xl p-5 text-left text-xs space-y-2 border-dashed border-indigo-500/30">
+        <div class="text-slate-400">Your Submitted Payment ID:</div>
+        <div class="font-mono text-slate-200 text-sm" id="pending-tid-display">-</div>
+        <div class="text-indigo-400 mt-2 font-semibold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span> Checking Ledger Logs...
+        </div>
+      </div>
+      <button onclick="auth.signOut()" class="w-full text-center text-xs text-rose-400 hover:underline pt-4">Log Out Current Session</button>
+    </div>
+
+    <!-- Screen 6: Blocked Screen -->
+    <div id="screen-blocked" class="hidden space-y-6 text-center">
+      <div class="w-20 h-20 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto text-4xl animate-bounce">
+        <i class="fa-solid fa-user-slash"></i>
+      </div>
+      <div class="space-y-3">
+        <h2 class="text-2xl font-bold text-rose-500">Account Blocked</h2>
+        <p class="text-slate-400 text-sm leading-relaxed px-4">
+          Your account has been suspended or blocked by the Administrator due to terms of service violation or payment verification mismatch.
+        </p>
+        <p class="text-indigo-400 text-xs font-semibold">Please contact system support for assistance.</p>
+      </div>
+      <button onclick="auth.signOut()" class="w-full text-center text-xs text-rose-400 hover:underline pt-4">Log Out Current Session</button>
+    </div>
+
+    <!-- Screen 8: Support / Chat screen -->
+    <div id="screen-support" class="hidden space-y-5">
+      <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <button onclick="closeSupportScreen()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-arrow-left text-lg"></i>
+        </button>
+        <h2 class="text-xl font-bold">Contact Support</h2>
+      </div>
+      
+      <div class="glass-card rounded-2xl p-5 space-y-4">
+        <p class="text-xs text-slate-400">Apna masla likhein aur agar koi payment issue hai to screenshot zaroor upload karein.</p>
+        
+        <div class="space-y-1">
+          <label class="text-xs text-slate-300 font-semibold">Write Your Problem / Message</label>
+          <textarea id="support-msg" rows="4" placeholder="Apna masla yahan tafseel se likhein..." class="w-full bg-slate-900/80 border border-slate-700/80 rounded-xl py-3 px-4 text-slate-100 text-sm focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs text-slate-300 font-semibold block">Upload Screenshot (Optional)</label>
+          <input type="file" id="support-img" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-750">
+        </div>
+
+        <button onclick="submitSupportTicket()" class="w-full bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm py-3.5 rounded-xl transition-all shadow-lg active:scale-95">
+          Send Support Message
+        </button>
+      </div>
+
+      <!-- Support Ticket History / Realtime Chat -->
+      <div class="glass-card p-4 rounded-2xl space-y-3">
+        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wide">Support Chat History</h4>
+        <div id="support-history-list" class="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+          <p class="text-xs text-slate-400 text-center py-4">No message history found.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 7: Main App Shell (Dashboard + Tabs) -->
+    <div id="screen-dashboard" class="hidden space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
+            <span id="user-avatar-char" class="font-bold text-white uppercase">U</span>
+          </div>
+          <div>
+            <h4 id="user-display-name" class="font-bold text-sm">Loading Profile...</h4>
+            <span id="user-status-badge" class="text-[10px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold px-2 py-0.5 rounded-full uppercase">Verified User</span>
+          </div>
+        </div>
+        <button onclick="auth.signOut()" class="text-slate-400 hover:text-rose-400 p-2 transition-colors" title="Log Out">
+          <i class="fa-solid fa-arrow-right-from-bracket text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div id="tab-container" class="space-y-5">
+        
+        <!-- Tab 1: Home Screen (With Side-by-Side Chat & WhatsApp Buttons) -->
+        <div id="tab-content-home" class="space-y-5">
+          <div class="bg-gradient-to-br from-indigo-900/90 to-slate-900 rounded-3xl p-6 border border-indigo-500/20 shadow-xl shadow-indigo-950/20 relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+            <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider">Current Balance</p>
+            <div class="flex items-baseline gap-2 mt-2">
+              <span class="text-4xl font-extrabold tracking-tight text-white" id="home-balance">0.00</span>
+              <span class="text-indigo-400 font-bold text-sm">PKR</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-6">
+              <button onclick="switchTab('withdraw')" class="bg-white/10 hover:bg-white/15 text-white font-semibold text-sm py-3 rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-wallet"></i> Withdraw
+              </button>
+              <button id="btn-daily-reward" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+                <i class="fa-solid fa-gift"></i> Daily Reward
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="glass-card p-4 rounded-2xl flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center text-lg"><i class="fa-solid fa-circle-check"></i></div>
+              <div>
+                <p class="text-[10px] text-slate-400">Total Work</p>
+                <p class="font-bold text-slate-200">5 Active Tasks</p>
+              </div>
+            </div>
+            <div class="glass-card p-4 rounded-2xl flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-lg"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+              <div>
+                <p class="text-[10px] text-slate-400">Active Rate</p>
+                <p class="font-bold text-slate-200">100% Secure</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side-by-side Support Chat & WhatsApp Channel Buttons -->
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" onclick="openSupportScreen()" class="bg-slate-900/60 hover:bg-slate-800 text-indigo-300 font-semibold text-xs py-3.5 rounded-2xl border border-slate-850 transition-all flex items-center justify-center gap-1.5 shadow-md">
+              <i class="fa-regular fa-comments text-sm"></i> Chat Support
+            </button>
+            <a href="https://whatsapp.com/channel/0029VbCdpsiCRs1u66fWqj2p" target="_blank" class="bg-emerald-950/45 hover:bg-emerald-900/40 text-emerald-400 font-semibold text-xs py-3.5 rounded-2xl border border-emerald-800/30 transition-all flex items-center justify-center gap-1.5 shadow-md">
+              <i class="fa-brands fa-whatsapp text-base"></i> Join WhatsApp
+            </a>
+          </div>
+        </div>
+
+        <!-- Tab 2: Earn Screen -->
+        <div id="tab-content-earn" class="hidden space-y-4">
+          <div class="space-y-1">
+            <h3 class="text-xl font-bold">Earn Cash Daily</h3>
+            <p class="text-slate-400 text-xs">Complete regular active tasks to credited instant balance rewards</p>
+          </div>
+          <div id="tasks-list" class="space-y-3"></div>
+        </div>
+
+        <!-- Tab 3: Referrals Screen (With dynamic stats) -->
+        <div id="tab-content-referrals" class="hidden space-y-4">
+          <div class="space-y-1">
+            <h3 class="text-xl font-bold">Refer & Earn</h3>
+            <p class="text-slate-400 text-xs">Get friends to join. Earn 200 PKR bonus when their account gets approved.</p>
+          </div>
+
+          <!-- Dynamic Referral Metrics Grid -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+              <div>
+                <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Total Members</span>
+                <p id="user-total-referrals" class="text-xl font-extrabold mt-1 text-slate-100">0</p>
+              </div>
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-sm"><i class="fa-solid fa-users"></i></div>
+            </div>
+            <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex items-center justify-between">
+              <div>
+                <span class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Invite Earnings</span>
+                <p id="user-total-referral-earnings" class="text-xl font-extrabold mt-1 text-emerald-400">0.00</p>
+              </div>
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="fa-solid fa-sack-dollar"></i></div>
+            </div>
+          </div>
+          
+          <div class="glass-card p-5 rounded-2xl space-y-4">
+            <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+              <span>Your Invitation Template</span>
+              <span class="text-indigo-400">Preview</span>
+            </div>
+            
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs leading-relaxed space-y-3 font-medium select-all">
+              <p class="text-slate-300">
+                📢 <strong>PayEarn - Pakistan's Most Trusted Micro-Earning Portal!</strong><br><br>
+                Ghar baithe tasks aur daily rewards complete karein aur mahana Rs. 50,000/- tak ba-asani kamayein. 100% verified, trusted, aur real-time instant cashout (Easypaisa/JazzCash).<br><br>
+                Abhi mere link par click karein aur register karein! 🎁
+              </p>
+              <div class="text-indigo-400 font-mono break-all pt-2 border-t border-slate-900" id="ref-full-text-url">
+                URL_2: Loading link...
+              </div>
+            </div>
+            
+            <button onclick="copyFullReferralInvite()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-3 rounded-xl transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2">
+              <i class="fa-regular fa-copy"></i> Copy Invitation Message
+            </button>
+          </div>
+
+          <!-- Hidden container to keep legacy lookup happy -->
+          <div class="hidden" id="ref-code-value">PE8A3F2</div>
+
+          <div class="glass-card p-4 rounded-2xl">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wide mb-3">Referred Signups List</h4>
+            <div id="referrals-list" class="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+              <p class="text-xs text-slate-400 text-center py-6">No referrals yet.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Withdraw Screen (Updated to Minimum 750 PKR limit) -->
+        <div id="tab-content-withdraw" class="hidden space-y-5">
+          <div class="space-y-1">
+            <h3 class="text-xl font-bold">Request Cashout</h3>
+            <p class="text-slate-400 text-xs">Cashout funds instantly. Minimum threshold 750 PKR.</p>
+          </div>
+
+          <form id="withdraw-form" class="glass-card rounded-2xl p-5 space-y-4 shadow-md">
+            <div class="space-y-1.5">
+              <label class="text-xs text-slate-300 font-semibold">Select Processor Wallet</label>
+              <div class="grid grid-cols-2 gap-3">
+                <button type="button" onclick="selectWithdrawMethod('Easypaisa')" id="btn-wd-easypaisa" class="py-3 px-4 rounded-xl font-bold text-sm bg-indigo-600/25 border border-indigo-500/60 text-white transition-all">
+                  Easypaisa
+                </button>
+                <button type="button" onclick="selectWithdrawMethod('JazzCash')" id="btn-wd-jazzcash" class="py-3 px-4 rounded-xl font-bold text-sm bg-slate-900/60 border border-slate-700/50 text-slate-400 transition-all">
+                  JazzCash
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <label class="text-xs text-slate-300 font-semibold">Account Title/Name</label>
+              <input type="text" id="wd-name" required placeholder="Beneficiary Account Name" class="w-full bg-slate-900/80 border border-slate-700/85 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs text-slate-300 font-semibold">Account Mobile Number</label>
+              <input type="tel" id="wd-number" required placeholder="03XXXXXXXXX" class="w-full bg-slate-900/80 border border-slate-700/85 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs text-slate-300 font-semibold">Withdraw Amount (PKR)</label>
+              <input type="number" min="750" id="wd-amount" required placeholder="Min 750 PKR" class="w-full bg-slate-900/80 border border-slate-700/85 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/10">
+              Submit Cashout Request
+            </button>
+          </form>
+
+          <div class="glass-card p-4 rounded-2xl">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wide mb-3">Your Cashout Statements</h4>
+            <div id="withdraw-list" class="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+              <p class="text-xs text-slate-400 text-center py-6">No previous withdraw records.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Persistent App Bottom Navigation -->
+      <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-950/95 backdrop-blur-md border-t border-slate-800 grid grid-cols-4 py-2 px-1 rounded-t-3xl shadow-2xl z-20">
+        <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center gap-1 py-1.5 text-indigo-400 font-medium text-[10px] transition-colors">
+          <i class="fa-solid fa-house text-base"></i> Home
+        </button>
+        <button onclick="switchTab('earn')" id="nav-earn" class="flex flex-col items-center gap-1 py-1.5 text-slate-400 hover:text-indigo-400 font-medium text-[10px] transition-colors">
+          <i class="fa-solid fa-chart-line text-base"></i> Earn
+        </button>
+        <button onclick="switchTab('referrals')" id="nav-referrals" class="flex flex-col items-center gap-1 py-1.5 text-slate-400 hover:text-indigo-400 font-medium text-[10px] transition-colors">
+          <i class="fa-solid fa-users text-base"></i> Referrals
+        </button>
+        <button onclick="switchTab('withdraw')" id="nav-withdraw" class="flex flex-col items-center gap-1 py-1.5 text-slate-400 hover:text-indigo-400 font-medium text-[10px] transition-colors">
+          <i class="fa-solid fa-receipt text-base"></i> Withdraw
+        </button>
+      </nav>
+      <div class="h-16"></div>
+    </div>
+
+  </main>
+
+  <!-- Realtime Fullscreen Timer Block Overlay -->
+  <div id="timer-overlay" class="hidden fixed inset-0 bg-slate-950/98 backdrop-blur-md flex-col items-center justify-center space-y-4 z-50">
+    <div class="w-24 h-24 rounded-full border-4 border-indigo-500/10 border-t-indigo-500 flex items-center justify-center animate-spin">
+      <i class="fa-solid fa-display text-2xl text-indigo-400 -rotate-45"></i>
+    </div>
+    <div class="text-center space-y-1">
+      <h3 class="text-xl font-bold">Verifying Session Stay</h3>
+      <p class="text-slate-400 text-xs max-w-xs leading-relaxed px-4">Do not minimize or go away. System tracking activity on Adsterra web portal partner.</p>
+    </div>
+    <div id="timer-countdown" class="text-4xl font-extrabold text-white tracking-widest font-mono">00:30</div>
+    <div class="text-[10px] uppercase font-semibold text-rose-400 tracking-wider">Do not refresh screen!</div>
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDi1ny9WpDMyTOY-g6-87B9ApMzjzo7vx4",
+      authDomain: "yasir-hafeez.firebaseapp.com",
+      databaseURL: "https://yasir-hafeez-default-rtdb.firebaseio.com",
+      projectId: "yasir-hafeez",
+      storageBucket: "yasir-hafeez.firebasestorage.app",
+      messagingSenderId: "757913317141",
+      appId: "1:757913317141:web:cc8b323bcee9c86fcec31c",
+      measurementId: "G-PZ90Q2JDK1"
+    };
+
+    // Global variables
+    let auth;
+    let db;
+    let currentUser = null;
+    let currentUserDoc = null;
+    let selectedWithdrawMethod = 'Easypaisa';
+    let currentTab = 'home';
+    let localTasks = [];
+    let activeListeners = [];
+    let selectedSupportBase64 = "";
+    let selectedPaymentBase64 = ""; // Holds verification screenshot base64
+    let unsubSupport = null;
+    let isFirstLoad = true; // Security alert control state
+
+    // Screen state router
+    function routeScreen(targetScreenId) {
+      const screens = ['screen-loading', 'screen-login', 'screen-register', 'screen-activation', 'screen-pending', 'screen-blocked', 'screen-support', 'screen-dashboard'];
+      screens.forEach(screen => {
+        const el = document.getElementById(screen);
+        if (screen === targetScreenId) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    // Generator function for Unique Alphanumeric Referral Code
+    function generateRefCode() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let result = 'PE';
+      for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    // Strictly enforce multiple-accounts warning banner (Force 3 seconds stay)
+    window.showStrictWarningBanner = function(onCloseCallback) {
+      Swal.fire({
+        title: '⚠️ ZAROORI TANBEEH (Warning)',
+        html: `
+          <div class="text-left text-xs leading-relaxed space-y-3 text-slate-300">
+            <p class="font-bold text-red-500 text-center text-sm animate-pulse uppercase">Bohat Ahem Maloomat!</p>
+            <p class="border-l-4 border-red-500 pl-3">
+              <strong>Yaad Rakhein:</strong> Aik mobile phone par sirf <strong>aik (1)</strong> hi account banane aur chalane ki ijazat hai.
+            </p>
+            <p class="border-l-4 border-amber-500 pl-3">
+              Agar kisi bhi user ne ek mobile device par aik se zyada accounts banaye, to un ke <strong>tamam accounts bina kisi warning ke permanent BLOCK</strong> kar diye jayenge.
+            </p>
+            <p class="border-l-4 border-rose-600 pl-3">
+              Block hone ki surat me aap ki jama karwayi gayi activation fees (500 PKR) ya wallet me maujood balance bilkul <strong>wapas (refund) nahi kiya jayega</strong>.
+            </p>
+          </div>
+        `,
+        background: '#0f172a',
+        color: '#f1f5f9',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false, // Hidden initially
+        didOpen: () => {
+          setTimeout(() => {
+            const confirmButton = Swal.getConfirmButton();
+            if (confirmButton) {
+              confirmButton.style.display = 'inline-block';
+            }
+            Swal.update({
+              showConfirmButton: true,
+              confirmButtonText: 'I Understand & Agree',
+              confirmButtonColor: '#ef4444' // firm red agreement button
+            });
+          }, 3000);
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          if (onCloseCallback) onCloseCallback();
+        }
+      });
+    }
+
+    // Checking if a task is completed in the last 24 hours
+    window.isTaskCompletedToday = function(taskId) {
+      if (!currentUserDoc || !currentUserDoc.completedTasks) return false;
+      const lastCompleted = currentUserDoc.completedTasks[taskId];
+      if (!lastCompleted) return false;
+      const oneDay = 24 * 60 * 60 * 1000;
+      return (Date.now() - lastCompleted) < oneDay;
+    }
+
+    // Safety loader wrapper
+    window.addEventListener('load', () => {
+      // Auto-Detect and save Referral Code from URL Parameter (e.g. ?ref=PE8A3F2)
+      const urlParams = new URLSearchParams(window.location.search);
+      const refParam = urlParams.get('ref');
+      if (refParam) {
+        sessionStorage.setItem('clicked_ref_code', refParam.toUpperCase().trim());
+      }
+
+      if (typeof firebase === 'undefined') {
+        document.getElementById('screen-loading').innerHTML = `
+          <div class="text-center p-6 bg-rose-500/10 border border-rose-500/30 rounded-2xl max-w-sm mx-auto shadow-xl">
+            <i class="fa-solid fa-triangle-exclamation text-4xl text-rose-500 mb-3 animate-bounce"></i>
+            <h3 class="text-lg font-bold text-slate-100">Connection Failed</h3>
+            <p class="text-xs text-slate-400 mt-2 leading-relaxed">Please verify your internet connection and try again.</p>
+            <button onclick="window.location.reload()" class="mt-5 w-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs py-3 rounded-xl transition-all">Retry Connection</button>
+          </div>
+        `;
+        return;
+      }
+
+      firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      db = firebase.firestore();
+
+      auth.onAuthStateChanged((user) => {
+        activeListeners.forEach(unsub => unsub());
+        activeListeners = [];
+        if (unsubSupport) { unsubSupport(); unsubSupport = null; }
+
+        if (!user) {
+          currentUser = null;
+          currentUserDoc = null;
+          isFirstLoad = true; // Reset warning session flag on logout
+          routeScreen('screen-login');
+        } else {
+          currentUser = user;
+          const userRef = db.collection("users").doc(user.uid);
+          
+          const unsubUser = userRef.onSnapshot((snapshot) => {
+            if (snapshot.exists) {
+              currentUserDoc = snapshot.data();
+
+              // Auto-generate Unique Ref Code if missing (for legacy or fallback accounts)
+              if (!currentUserDoc.refCode) {
+                const generated = generateRefCode();
+                userRef.update({ refCode: generated });
+                return;
+              }
+
+              // Trigger strict safety warnings once per browser/login session
+              if (isFirstLoad) {
+                isFirstLoad = false;
+                const hasSeenWarning = sessionStorage.getItem('warning_banner_seen');
+                if (!hasSeenWarning) {
+                  showStrictWarningBanner(() => {
+                    sessionStorage.setItem('warning_banner_seen', 'true');
+                    evaluateUserStatus(currentUserDoc);
+                  });
+                } else {
+                  evaluateUserStatus(currentUserDoc);
+                }
+              } else {
+                evaluateUserStatus(currentUserDoc);
+              }
+
+            } else {
+              const freshUser = {
+                uid: user.uid,
+                name: "User Account",
+                email: user.email,
+                phone: "03000000000",
+                status: "payment_pending",
+                balance: 0, // Set welcome bonus to 0
+                refCode: generateRefCode(), // Set unique ref code
+                createdAt: Date.now(),
+                completedTasks: {}
+              };
+              userRef.set(freshUser);
+            }
+          }, (error) => {
+            console.error("User sync error:", error);
+          });
+          activeListeners.push(unsubUser);
+        }
+      });
+
+      // Handle Support Image selection converts to Base64
+      document.getElementById('support-img').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          if (file.size > 1500000) {
+            Swal.fire('File Too Large', 'Please select a smaller screenshot (under 1.5MB)', 'warning');
+            document.getElementById('support-img').value = "";
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            selectedSupportBase64 = event.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Handle Compulsory Verification Image selection converts to Base64 (Max 800KB)
+      document.getElementById('pay-screenshot').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          if (file.size > 800000) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Image Too Large',
+              text: 'Please upload a smaller receipt image (under 800KB) to ensure successful database sync.',
+              confirmButtonColor: '#4f46e5'
+            });
+            document.getElementById('pay-screenshot').value = "";
+            selectedPaymentBase64 = "";
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            selectedPaymentBase64 = event.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    });
+
+    function evaluateUserStatus(userData) {
+      if (document.getElementById('screen-support').classList.contains('hidden') === false) {
+        return; // Allow support screen stay open
+      }
+
+      if (userData.status === 'blocked') {
+        routeScreen('screen-blocked');
+      } else if (userData.status === 'payment_pending') {
+        routeScreen('screen-activation');
+      } else if (userData.status === 'pending') {
+        document.getElementById('pending-tid-display').innerText = userData.transactionId || 'No details stored';
+        routeScreen('screen-pending');
+      } else if (userData.status === 'approved') {
+        routeScreen('screen-dashboard');
+        initRealtimeDashboard();
+      } else {
+        routeScreen('screen-activation');
+      }
+    }
+
+    // Open Support Modal View
+    window.openSupportScreen = function() {
+      routeScreen('screen-support');
+      
+      if (unsubSupport) unsubSupport();
+      unsubSupport = db.collection("support_tickets")
+        .where("userId", "==", currentUser.uid)
+        .onSnapshot((querySnapshot) => {
+          const container = document.getElementById('support-history-list');
+          container.innerHTML = '';
+          
+          if (querySnapshot.empty) {
+            container.innerHTML = '<p class="text-[11px] text-slate-500 text-center py-4">No message history found.</p>';
+            return;
+          }
+          
+          let list = [];
+          querySnapshot.forEach(docSnap => {
+            list.push(docSnap.data());
+          });
+          
+          list.sort((a,b) => b.createdAt - a.createdAt);
+          
+          list.forEach(ticket => {
+            const imgTag = ticket.image ? `<img src="${ticket.image}" class="w-24 rounded-lg border border-slate-700 mt-2 max-h-24 object-cover cursor-pointer hover:opacity-85" onclick="Swal.fire({imageUrl: '${ticket.image}', showConfirmButton: true, confirmButtonText: 'Close'})">` : '';
+            
+            const replySection = ticket.reply ? `
+              <div class="bg-indigo-950/40 p-2.5 rounded-lg border border-indigo-500/20 mt-2 text-[11px]">
+                <span class="font-bold text-indigo-400"><i class="fa-solid fa-reply"></i> Admin Reply:</span>
+                <p class="text-slate-200 mt-1">${ticket.reply}</p>
+              </div>
+            ` : `
+              <div class="text-[10px] text-slate-500 mt-1"><i class="fa-regular fa-clock"></i> Waiting for admin reply...</div>
+            `;
+
+            const item = document.createElement('div');
+            item.className = "bg-slate-900/60 p-3 rounded-xl border border-slate-800 space-y-1";
+            item.innerHTML = `
+              <div class="flex justify-between text-[9px] text-slate-400">
+                <span>${new Date(ticket.createdAt).toLocaleString()}</span>
+                <span class="uppercase font-bold text-indigo-400">${ticket.status || 'open'}</span>
+              </div>
+              <p class="text-xs text-slate-200 leading-relaxed">${ticket.message}</p>
+              ${imgTag}
+              ${replySection}
+            `;
+            container.appendChild(item);
+          });
+        });
+    }
+
+    window.closeSupportScreen = function() {
+      if (unsubSupport) {
+        unsubSupport();
+        unsubSupport = null;
+      }
+      evaluateUserStatus(currentUserDoc);
+    }
+
+    // Submit ticket to Firestore
+    window.submitSupportTicket = async function() {
+      const text = document.getElementById('support-msg').value.trim();
+      if (!text) {
+        Swal.fire('Field Required', 'Please write your problem/message first.', 'warning');
+        return;
+      }
+
+      try {
+        Swal.fire({ title: 'Sending...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        
+        await db.collection("support_tickets").add({
+          userId: currentUser.uid,
+          userName: currentUserDoc.name || 'Anonymous User',
+          userPhone: currentUserDoc.phone || 'No Phone',
+          message: text,
+          image: selectedSupportBase64,
+          status: 'open',
+          reply: '',
+          createdAt: Date.now()
+        });
+
+        document.getElementById('support-msg').value = "";
+        document.getElementById('support-img').value = "";
+        selectedSupportBase64 = "";
+
+        Swal.close();
+        Swal.fire('Message Sent!', 'Your request is recorded. Check status below in history.', 'success');
+      } catch (err) {
+        Swal.fire('Failed to Send', err.message, 'error');
+      }
+    }
+
+    // Dynamic referral copying system with professional Urdu invitation
+    window.copyFullReferralInvite = function() {
+      const refCode = currentUserDoc.refCode || "PE8A3F2";
+      const refLink = `https://payearn.business/?ref=${refCode}`;
+      
+      const inviteText = `📢 *PayEarn - Pakistan's Most Trusted Micro-Earning Portal!*\n\nGhar baithe tasks aur daily rewards complete karein aur mahana Rs. 50,000/- tak ba-asani kamayein. 100% verified, trusted, aur real-time instant cashout (Easypaisa/JazzCash) directly to your mobile wallet!\n\nAbhi mere link par click karein aur register karein! 🎁\n\nURL_2:${refLink}`;
+      
+      navigator.clipboard.writeText(inviteText).then(() => {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Invitation message copied!',
+          showConfirmButton: false,
+          timer: 2000
+        });
+      }).catch(err => {
+        const el = document.createElement('textarea');
+        el.value = inviteText;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Invitation message copied!',
+          showConfirmButton: false,
+          timer: 2000
+        });
+      });
+    }
+
+    function switchTab(targetTab) {
+      const tabs = ['home', 'earn', 'referrals', 'withdraw'];
+      tabs.forEach(tab => {
+        const content = document.getElementById(`tab-content-${tab}`);
+        const navButton = document.getElementById(`nav-${tab}`);
+        if (tab === targetTab) {
+          content.classList.remove('hidden');
+          navButton.classList.add('text-indigo-400');
+          navButton.classList.remove('text-slate-400');
+        } else {
+          content.classList.add('hidden');
+          navButton.classList.remove('text-indigo-400');
+          navButton.classList.add('text-slate-400');
+        }
+      });
+      currentTab = targetTab;
+    }
+    window.switchTab = switchTab;
+
+    function initRealtimeDashboard() {
+      if (!currentUserDoc) return;
+
+      document.getElementById('user-display-name').innerText = currentUserDoc.name;
+      document.getElementById('user-avatar-char').innerText = currentUserDoc.name.charAt(0);
+      
+      // Live updates of current balance directly on home page
+      document.getElementById('home-balance').innerText = parseFloat(currentUserDoc.balance || 0).toFixed(2);
+
+      // Render Dynamic Unique Referral Code Preview
+      const refCode = currentUserDoc.refCode || "PE8A3F2";
+      document.getElementById('ref-code-value').innerText = refCode;
+      
+      const refLink = `https://payearn.business/?ref=${refCode}`;
+      document.getElementById('ref-full-text-url').innerHTML = `URL_2:${refLink}`;
+
+      // Daily Reward Button Styles Realtime update
+      const lastReward = currentUserDoc.lastDailyReward || 0;
+      const oneDay = 24 * 60 * 60 * 1000;
+      const isRewardClaimed = (Date.now() - lastReward) < oneDay;
+      const dailyBtn = document.getElementById('btn-daily-reward');
+      if (isRewardClaimed) {
+        dailyBtn.className = "bg-slate-800 text-slate-500 border border-slate-700 font-semibold text-sm py-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-not-allowed";
+        dailyBtn.innerHTML = `<i class="fa-solid fa-check"></i> Claimed`;
+      } else {
+        dailyBtn.className = "bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20";
+        dailyBtn.innerHTML = `<i class="fa-solid fa-gift"></i> Daily Reward`;
+      }
+
+      // Tasks syncing
+      const unsubTasks = db.collection("tasks").onSnapshot((querySnapshot) => {
+        localTasks = [];
+        const container = document.getElementById('tasks-list');
+        container.innerHTML = '';
+
+        if (querySnapshot.empty) {
+          container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">No active tasks available right now.</p>';
+          return;
+        }
+
+        querySnapshot.forEach((docSnap) => {
+          const task = { id: docSnap.id, ...docSnap.data() };
+          localTasks.push(task);
+
+          const isCompleted = isTaskCompletedToday(task.id);
+          const btnClass = isCompleted 
+            ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed" 
+            : "bg-indigo-600 hover:bg-indigo-500 text-white";
+          const btnText = isCompleted ? "Completed" : "Claim Link";
+
+          const taskEl = document.createElement('div');
+          taskEl.className = "glass-card p-4 rounded-2xl flex items-center justify-between border border-slate-750 hover:border-indigo-500/40 transition-all";
+          taskEl.innerHTML = `
+            <div class="space-y-1">
+              <span class="text-[10px] uppercase font-bold text-indigo-400 flex items-center gap-1">
+                <i class="fa-solid fa-bolt"></i> Reward +${task.reward} PKR
+              </span>
+              <h4 class="font-bold text-sm text-slate-100">${task.name}</h4>
+              <p class="text-[10px] text-slate-400">Open link to complete the task</p>
+            </div>
+            <button onclick="window.runEarnTask('${task.id}', '${task.link}', ${task.reward})" class="px-4 py-2 text-xs font-semibold rounded-lg shadow-md transition-colors ${btnClass}">
+              ${btnText}
+            </button>
+          `;
+          container.appendChild(taskEl);
+        });
+      });
+      activeListeners.push(unsubTasks);
+
+      // Withdraw List sorted client-side
+      const unsubWithdraws = db.collection("withdrawals")
+        .where("userId", "==", currentUser.uid)
+        .onSnapshot((querySnapshot) => {
+          const container = document.getElementById('withdraw-list');
+          if (querySnapshot.empty) {
+            container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">No previous cashout records.</p>';
+            return;
+          }
+          
+          let list = [];
+          querySnapshot.forEach((docSnap) => {
+            list.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          
+          list.sort((a, b) => b.createdAt - a.createdAt);
+
+          container.innerHTML = '';
+          list.forEach((wd) => {
+            const badgeStyle = wd.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : (wd.status === 'Rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20');
+            const row = document.createElement('div');
+            row.className = "p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between";
+            row.innerHTML = `
+              <div>
+                <div class="text-xs font-bold text-slate-200">${wd.method} - ${wd.accountNumber}</div>
+                <div class="text-[9px] text-slate-400">${new Date(wd.createdAt).toLocaleDateString()}</div>
+              </div>
+              <div class="text-right space-y-1">
+                <div class="text-xs font-bold text-slate-100">${wd.amount} PKR</div>
+                <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full border ${badgeStyle}">${wd.status}</span>
+              </div>
+            `;
+            container.appendChild(row);
+          });
+        });
+      activeListeners.push(unsubWithdraws);
+
+      // Real-time Referrals synced list (Using unique alphanumeric Ref Code)
+      const unsubReferrals = db.collection("users")
+        .where("referredBy", "==", currentUserDoc.refCode || "PE8A3F2")
+        .onSnapshot((querySnapshot) => {
+          const container = document.getElementById('referrals-list');
+          
+          let totalRef = 0;
+          let approvedRef = 0;
+          
+          if (querySnapshot.empty) {
+            document.getElementById('user-total-referrals').innerText = "0";
+            document.getElementById('user-total-referral-earnings').innerText = "0.00";
+            container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">No referrals yet.</p>';
+            return;
+          }
+          
+          container.innerHTML = '';
+          querySnapshot.forEach((docSnap) => {
+            const userObj = docSnap.data();
+            totalRef++;
+            
+            // Checked via referralBonusPaid flag or approved status for perfect alignment
+            if (userObj.referralBonusPaid === true || userObj.status === 'approved') {
+              approvedRef++;
+            }
+
+            const badgeStyle = userObj.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400';
+            const row = document.createElement('div');
+            row.className = "flex items-center justify-between p-2.5 bg-slate-900/40 rounded-xl border border-slate-850";
+            row.innerHTML = `
+              <div class="space-y-0.5">
+                <div class="text-xs font-semibold text-slate-200">${userObj.name}</div>
+                <div class="text-[9px] text-slate-500">${userObj.email}</div>
+              </div>
+              <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${badgeStyle}">${userObj.status}</span>
+            `;
+            container.appendChild(row);
+          });
+
+          // Show stats dynamically (200 PKR per approved member)
+          document.getElementById('user-total-referrals').innerText = totalRef;
+          document.getElementById('user-total-referral-earnings').innerText = `${approvedRef * 200}.00`;
+        });
+      activeListeners.push(unsubReferrals);
+    }
+
+    function startVerifyingSession(onFinishCallback) {
+      const overlay = document.getElementById('timer-overlay');
+      const textCountdown = document.getElementById('timer-countdown');
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+
+      let seconds = 30;
+      textCountdown.innerText = `00:${seconds}`;
+
+      const interval = setInterval(() => {
+        seconds--;
+        textCountdown.innerText = seconds < 10 ? `00:0${seconds}` : `00:${seconds}`;
+        if (seconds <= 0) {
+          clearInterval(interval);
+          overlay.classList.add('hidden');
+          overlay.classList.remove('flex');
+          onFinishCallback();
+        }
+      }, 1000);
+    }
+
+    window.runEarnTask = function(taskId, urlLink, rewardAmount) {
+      // Check 24 hour limit first
+      if (isTaskCompletedToday(taskId)) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Already Completed',
+          text: 'You have already completed this today, please try again tomorrow.',
+          confirmButtonColor: '#4f46e5'
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: 'Launch Verified Earning Session?',
+        text: 'This links to our official partner networks. Please keep the window open for 30 seconds to fetch rewards.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#4f46e5',
+        confirmButtonText: 'Watch and Earn Now'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.open(urlLink, '_blank');
+          startVerifyingSession(async () => {
+            try {
+              const newBalance = (currentUserDoc.balance || 0) + rewardAmount;
+              
+              // Direct nested map update notation for atomic update
+              const updateData = { balance: newBalance };
+              updateData[`completedTasks.${taskId}`] = Date.now();
+
+              await db.collection("users").doc(currentUser.uid).update(updateData);
+              
+              Swal.fire({
+                icon: 'success',
+                title: 'Payout Verified!',
+                text: `${rewardAmount} PKR has been deposited inside your balance ledger.`,
+                confirmButtonColor: '#4f46e5'
+              });
+            } catch (err) {
+              Swal.fire('Error', 'Unable to record task reward.', 'error');
+            }
+          });
+        }
+      });
+    };
+
+    // Daily Reward Click handler with 24 Hours strict cooldown
+    document.getElementById('btn-daily-reward').addEventListener('click', () => {
+      const lastReward = currentUserDoc.lastDailyReward || 0;
+      const oneDay = 24 * 60 * 60 * 1000;
+      const timeLeft = oneDay - (Date.now() - lastReward);
+
+      if (timeLeft > 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Already Completed',
+          text: 'You have already completed this today, please try again tomorrow.',
+          confirmButtonColor: '#4f46e5'
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: 'Watch Adsterra Reward Ad?',
+        text: 'Complete the 30-second verification timer and claim your 10 PKR bonus.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4f46e5',
+        confirmButtonText: 'Watch +10 PKR'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.open('https://www.effectivecpmnetwork.com/tsiac8k7sx?key=14d4d8837b87d2e8144d650b20f4e461', '_blank');
+          startVerifyingSession(async () => {
+            const newBalance = (currentUserDoc.balance || 0) + 10;
+            await db.collection("users").doc(currentUser.uid).update({
+              balance: newBalance,
+              lastDailyReward: Date.now()
+            });
+            Swal.fire({
+              icon: 'success',
+              title: 'Bonus Earned!',
+              text: '10 PKR daily bonus deposited into your account ledger.',
+              confirmButtonColor: '#4f46e5'
+            });
+          });
+        }
+      });
+    });
+
+    document.getElementById('go-to-register').addEventListener('click', () => {
+      routeScreen('screen-register');
+      // Auto-populate clicked referral link parameter into the field dynamically
+      const savedRef = sessionStorage.getItem('clicked_ref_code');
+      if (savedRef) {
+        document.getElementById('reg-ref').value = savedRef;
+      }
+    });
+
+    document.getElementById('go-to-login').addEventListener('click', () => routeScreen('screen-login'));
+
+    // Handle Login Forms
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-password').value;
+
+      try {
+        Swal.fire({ title: 'Logging in...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        await auth.signInWithEmailAndPassword(email, pass);
+        Swal.close();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Authentication Failed', text: err.message });
+      }
+    });
+
+    // Handle Registration Forms (No direct referral bonus on registration)
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      const referral = document.getElementById('reg-ref').value.trim().toUpperCase(); // Format properly
+      const pass = document.getElementById('reg-password').value;
+      const cpass = document.getElementById('reg-cpassword').value;
+
+      if (pass !== cpass) {
+        Swal.fire('Password Mismatch', 'Passwords do not match.', 'warning');
+        return;
+      }
+
+      try {
+        Swal.fire({ title: 'Creating Account...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+        const user = userCredential.user;
+
+        const newUserDoc = {
+          uid: user.uid,
+          name: name,
+          email: email,
+          phone: phone,
+          referredBy: referral || null,
+          status: 'payment_pending',
+          balance: 0, // welcome bonus is 0 PKR now
+          refCode: generateRefCode(), // Set unique ref code
+          createdAt: Date.now(),
+          completedTasks: {}
+        };
+
+        await db.collection("users").doc(user.uid).set(newUserDoc);
+        Swal.close();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Registration Failed', text: err.message });
+      }
+    });
+
+    // Account verification submission (Compulsory image verification)
+    document.getElementById('payment-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('pay-name').value.trim();
+      const number = document.getElementById('pay-number').value.trim();
+      const tid = document.getElementById('pay-tid').value.trim();
+
+      // Compulsory File Verification Guard
+      if (!selectedPaymentBase64) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Screenshot Required',
+          text: 'Please upload your payment receipt screenshot first. This is compulsory!',
+          confirmButtonColor: '#4f46e5'
+        });
+        return;
+      }
+
+      if (tid.length < 11) {
+        Swal.fire('Validation Error', 'Transaction ID must be at least 11 characters.', 'warning');
+        return;
+      }
+
+      try {
+        Swal.fire({ title: 'Submitting Details...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        await db.collection("users").doc(currentUser.uid).update({
+          senderName: name,
+          senderNumber: number,
+          transactionId: tid,
+          paymentScreenshot: selectedPaymentBase64, // COMPULSORY
+          status: 'pending'
+        });
+        Swal.close();
+        Swal.fire('Submitted!', 'Our team is verifying your payment.', 'success');
+      } catch (err) {
+        Swal.fire('Failed to Submit', err.message, 'error');
+      }
+    });
+
+    // Select cashout methods
+    window.selectWithdrawMethod = function(method) {
+      selectedWithdrawMethod = method;
+      const btnEp = document.getElementById('btn-wd-easypaisa');
+      const btnJc = document.getElementById('btn-wd-jazzcash');
+      if (method === 'Easypaisa') {
+        btnEp.className = "py-3 px-4 rounded-xl font-bold text-sm bg-indigo-600/25 border border-indigo-500/60 text-white transition-all";
+        btnJc.className = "py-3 px-4 rounded-xl font-bold text-sm bg-slate-900/60 border border-slate-700/50 text-slate-400 transition-all";
+      } else {
+        btnJc.className = "py-3 px-4 rounded-xl font-bold text-sm bg-indigo-600/25 border border-indigo-500/60 text-white transition-all";
+        btnEp.className = "py-3 px-4 rounded-xl font-bold text-sm bg-slate-900/60 border border-slate-700/50 text-slate-400 transition-all";
+      }
+    };
+
+    // Submitting Withdrawal Form (With updated 750 PKR threshold check)
+    document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('wd-name').value.trim();
+      const number = document.getElementById('wd-number').value.trim();
+      const amount = parseFloat(document.getElementById('wd-amount').value);
+
+      if (amount < 750) {
+        Swal.fire('Error', 'Minimum withdrawal threshold is 750 PKR', 'warning');
+        return;
+      }
+
+      if (amount > currentUserDoc.balance) {
+        Swal.fire('Insufficient Funds', 'Your active balance is lower than the amount.', 'warning');
+        return;
+      }
+
+      try {
+        Swal.fire({ title: 'Posting cashout request...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        await db.collection("withdrawals").add({
+          userId: currentUser.uid,
+          userName: currentUserDoc.name,
+          method: selectedWithdrawMethod,
+          accountName: name,
+          accountNumber: number,
+          amount: amount,
+          status: 'Pending',
+          createdAt: Date.now()
+        });
+
+        const adjustedBalance = (currentUserDoc.balance || 0) - amount;
+        await db.collection("users").doc(currentUser.uid).update({
+          balance: adjustedBalance
+        });
+
+        document.getElementById('withdraw-form').reset();
+        Swal.close();
+        Swal.fire('Success!', 'Withdrawal requested successfully.', 'success');
+      } catch (err) {
+        Swal.fire('Database Error', err.message, 'error');
+      }
+    });
+  </script>
+</body>
+</html>
