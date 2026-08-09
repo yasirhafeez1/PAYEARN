@@ -867,7 +867,7 @@
     // Dynamic referral copying system with professional Urdu invitation
     window.copyFullReferralInvite = function() {
       const refCode = currentUserDoc.refCode || "PE8A3F2";
-      const refLink = `https://payearn.business/?ref=${refCode}`;
+      const refLink = `https://payearn.vercel.app/?ref=${refCode}`;
       
       const inviteText = `📢 *PayEarn - Pakistan's Most Trusted Micro-Earning Portal!*\n\nGhar baithe tasks aur daily rewards complete karein aur mahana Rs. 50,000/- tak ba-asani kamayein. 100% verified, trusted, aur real-time instant cashout (Easypaisa/JazzCash) directly to your mobile wallet!\n\nAbhi mere link par click karein aur register karein! 🎁\n\nURL_2:${refLink}`;
       
@@ -1335,7 +1335,7 @@
 
         document.getElementById('withdraw-form').reset();
         Swal.close();
-        Swal.fire('Success!', 'Withdrawal requested successfully.', 'success');
+        Swal.fire('Success!', 'Withdrawal requested successfully your payment will send on sunday(اتوار)to your bank account .', 'success');
       } catch (err) {
         Swal.fire('Database Error', err.message, 'error');
       }
