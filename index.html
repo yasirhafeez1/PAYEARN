@@ -211,7 +211,7 @@
           </div>
           <div class="space-y-1">
             <label class="text-xs text-slate-300 font-semibold">Transaction ID (TID)</label>
-            <input type="text" id="pay-tid" required placeholder="Min 11-digit Transaction ID" class="w-full bg-slate-900/85 border border-slate-700/80 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
+            <input type="text" id="pay-tid" required placeholder="Min 11-digit Transaction ID" class="w-full bg-slate-900/85 border border-slate-700/85 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-indigo-500 transition-all">
           </div>
           
           <!-- Upload Receipt Screenshot (Compulsory) -->
@@ -417,7 +417,7 @@
             <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs leading-relaxed space-y-3 font-medium select-all">
               <p class="text-slate-300">
                 📢 <strong>PayEarn - Pakistan's Most Trusted Micro-Earning Portal!</strong><br><br>
-                Ghar baithe tasks aur daily rewards complete karein aur mahana Rs. 50,000/- tak ba-asani kamayein. 100% verified, trusted, aur real-time instant cashout (Easypaisa/JazzCash).<br><br>
+                Ghar baithe tasks aur daily rewards complete karein aur mahana Rs. 50,000/- tak ba-asani kamayein. 100% verified, trusted, aur real-time instant cashout (Easypaisa/JazzCash) directly to your mobile wallet!<br><br>
                 Abhi mere link par click karein aur register karein! 🎁
               </p>
               <div class="text-indigo-400 font-mono break-all pt-2 border-t border-slate-900" id="ref-full-text-url">
@@ -691,18 +691,9 @@
               }
 
             } else {
-              const freshUser = {
-                uid: user.uid,
-                name: "User Account",
-                email: user.email,
-                phone: "03000000000",
-                status: "payment_pending",
-                balance: 0, // Set welcome bonus to 0
-                refCode: generateRefCode(), // Set unique ref code
-                createdAt: Date.now(),
-                completedTasks: {}
-              };
-              userRef.set(freshUser);
+              // REMOVED: Automatic data-overwriting logic with blank structure
+              // This safely prevents verified user records from resetting back to 'payment_pending' or '0' balance!
+              routeScreen('screen-loading');
             }
           }, (error) => {
             console.error("User sync error:", error);
